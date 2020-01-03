@@ -1,0 +1,20 @@
+= Geiger Counter Spring App From the Edge
+
+
+== Build the application
+```
+cd sensorapp
+mvn clean install -DskipTests
+```
+
+== Run the Sensor application with sample data
+```
+cd sensorapp
+java -jar target/sensorapp-0.0.1-SNAPSHOT.jar --generateSampleData=true --url=http://<your http source>
+```
+
+== Run the Sensor application with real data to cloud
+```
+cd sensorapp
+java -jar target/sensorapp-0.0.1-SNAPSHOT.jar --url=<your http source>
+```
