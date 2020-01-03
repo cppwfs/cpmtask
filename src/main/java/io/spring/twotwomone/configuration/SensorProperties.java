@@ -39,6 +39,14 @@ public class SensorProperties {
 	private String unitId = "A1";
 
 	/**
+	 * CPM to MicroSievert per hour
+	 * Default based on J305B tube
+	 */
+	private Double cpmSievertConverstion = 123.14;
+
+	private boolean generateSampleData = false;
+
+	/**
 	 * The commport that the cpm data will be read from.
 	 */
 	private int comPort = 2;
@@ -73,5 +81,21 @@ public class SensorProperties {
 
 	public void setComPort(int comPort) {
 		this.comPort = comPort;
+	}
+
+	public Double getCpmSievertConverstion() {
+		return cpmSievertConverstion;
+	}
+
+	public void setCpmSievertConverstion(Double cpmSievertConverstion) {
+		this.cpmSievertConverstion = cpmSievertConverstion;
+	}
+
+	public boolean isGenerateSampleData() {
+		return generateSampleData;
+	}
+
+	public void setGenerateSampleData(boolean generateSampleData) {
+		this.generateSampleData = generateSampleData;
 	}
 }

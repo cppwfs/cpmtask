@@ -9,24 +9,21 @@ import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 @EnableTask
-public class TwotwomoneApplication {
+public class SensorApplication {
 
 	@Autowired
 	private SensorFlows sensorFlows;
 
 
+
 	public static void main(String[] args) {
-		SpringApplication.run(TwotwomoneApplication.class, args);
+		SpringApplication.run(SensorApplication.class, args);
 	}
 
 	@Bean
 	public CommandLineRunner commandLineRunner() {
-		return new CommandLineRunner() {
-			@Override
-			public void run(String... args) throws Exception {
-				//sensorFlows.generateFakeData();
-				sensorFlows.processCPM();
-			}
+		return args -> {
+			sensorFlows.processSensorFlows();
 		};
 	}
 }

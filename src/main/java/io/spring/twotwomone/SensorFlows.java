@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -21,17 +21,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.WritableByteChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Random;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fazecast.jSerialComm.SerialPort;
 import io.spring.twotwomone.configuration.SensorProperties;
+import io.spring.twotwomone.data.SensorData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -40,11 +38,14 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 public class SensorFlows {
 
+	Logger logger = LoggerFactory.getLogger(SensorFlows.class);
+
 	private WebClient webClient;
 	private File backupFile;
 	private OutputStream outputStream;
 	private String unitId;
 	private SensorProperties sensorProperties;
+	private ObjectMapper mapper;
 
 	public SensorFlows(SensorProperties sensorProperties) {
 		this.webClient = WebClient
@@ -62,6 +63,16 @@ public class SensorFlows {
 		}
 		unitId = sensorProperties.getUnitId();
 		this.sensorProperties = sensorProperties;
+		this.mapper = new ObjectMapper();
+	}
+
+	public void processSensorFlows() throws Exception{
+		if(this.sensorProperties.isGenerateSampleData()) {
+			generateFakeData();
+		}
+		else {
+			processCPM();
+		}
 	}
 
 	public void generateFakeData() throws Exception {
@@ -81,7 +92,7 @@ public class SensorFlows {
 		InputStream in = comPort.getInputStream();
 		try
 		{
-			System.out.print("CPM:");
+			//System.out.print("CPM:");
 			String data = "";
 			for (int j = 0; j < 100000; ++j) {
 				char c = (char) in.read();
@@ -101,23 +112,33 @@ public class SensorFlows {
 
 
 	public void postData(String cpm) throws IOException{
+		String sensorData = null;
+		try {
+			sensorData = calculateSensorData(cpm);
+		}
+		catch (Exception exception) {
+			exception.printStackTrace();
+			return;
+		}
 		try {
 			this.webClient.post()
-					.body(BodyInserters.fromObject(getStringFormat(cpm)))
+					.body(BodyInserters.fromObject(sensorData))
 					.exchange().block()
 					.bodyToMono(String.class)
 					.block();
-			System.out.println(">>>>>" + cpm);
+			logger.info(">>>>>" + cpm);
 		}
 		catch (Exception e) {
-			this.outputStream.write(("=====>" + getStringFormat(cpm) + "\n").getBytes() );
-			System.out.println("====>" + getStringFormat(cpm));
+			this.outputStream.write(("=====>" + sensorData + "\n").getBytes() );
+			logger.info("====>" + sensorData);
 		}
 	}
 
-	private String getStringFormat(String cpm) {
+	private String calculateSensorData(String cpm) throws Exception{
 		SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd hh:mm:ss");
-		Date date = new Date();
-		return String.format("{\"unitid\":\"%s\",\"timestamp\":\"%s\",\"cpm\":\"%s\"}", unitId, sdf.format(date), cpm);
+		int countsPerMinute = Integer.valueOf(cpm);
+		Double microSieverts = countsPerMinute / this.sensorProperties.getCpmSievertConverstion();
+		SensorData sensorData = new SensorData(countsPerMinute, microSieverts, unitId);
+		return this.mapper.writeValueAsString(sensorData);
 	}
 }
