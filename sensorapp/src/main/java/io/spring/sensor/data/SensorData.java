@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.spring.twotwomone.data;
+package io.spring.sensor.data;
 
 import java.util.Date;
 

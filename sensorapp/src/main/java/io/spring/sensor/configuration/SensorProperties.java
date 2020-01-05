@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.spring.twotwomone.configuration;
+package io.spring.sensor.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

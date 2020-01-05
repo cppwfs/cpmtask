@@ -14,9 +14,9 @@
  *  limitations under the License.
  */
 
-package io.spring.twotwomone.configuration;
+package io.spring.sensor.configuration;
 
-import io.spring.twotwomone.SensorFlows;
+import io.spring.sensor.SensorFlows;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

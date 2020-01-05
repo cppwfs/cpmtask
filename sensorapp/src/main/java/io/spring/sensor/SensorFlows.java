@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.spring.twotwomone;
+package io.spring.sensor;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,8 +26,8 @@ import java.util.Random;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fazecast.jSerialComm.SerialPort;
-import io.spring.twotwomone.configuration.SensorProperties;
-import io.spring.twotwomone.data.SensorData;
+import io.spring.sensor.configuration.SensorProperties;
+import io.spring.sensor.data.SensorData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

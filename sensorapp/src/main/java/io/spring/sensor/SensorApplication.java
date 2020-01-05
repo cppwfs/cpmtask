@@ -1,4 +1,4 @@
-package io.spring.twotwomone;
+package io.spring.sensor;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
