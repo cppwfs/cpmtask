@@ -31,28 +31,28 @@ import io.spring.sensor.data.SensorData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestTemplate;
+
 
 public class SensorFlows {
 
 	Logger logger = LoggerFactory.getLogger(SensorFlows.class);
 
-	private WebClient webClient;
+	private RestTemplate restTemplate;
 	private File backupFile;
 	private OutputStream outputStream;
 	private String unitId;
 	private SensorProperties sensorProperties;
 	private ObjectMapper mapper;
+	private boolean isCloudAvailable;
 
 	public SensorFlows(SensorProperties sensorProperties) {
-		this.webClient = WebClient
-				.builder()
-				.baseUrl(sensorProperties.getUrl())
-				.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-				.build();
+//		this.webClient = WebClient
+//				.builder()
+//				.baseUrl(sensorProperties.getUrl())
+//				.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+//				.build();
+		restTemplate = new RestTemplate();
 		this.backupFile = new File(sensorProperties.getBackUpFileName());
 		try {
 			backupFile.createNewFile();
@@ -121,12 +121,9 @@ public class SensorFlows {
 			return;
 		}
 		try {
-			this.webClient.post()
-					.body(BodyInserters.fromObject(sensorData))
-					.exchange().block()
-					.bodyToMono(String.class)
-					.block();
+			this.restTemplate.postForEntity(sensorProperties.getUrl(),sensorData, SensorData.class);
 			logger.info(">>>>>" + cpm);
+			isCloudAvailable = true;
 		}
 		catch (Exception e) {
 			this.outputStream.write(("=====>" + sensorData + "\n").getBytes() );
@@ -140,5 +137,17 @@ public class SensorFlows {
 		Double microSieverts = countsPerMinute / this.sensorProperties.getCpmSievertConverstion();
 		SensorData sensorData = new SensorData(countsPerMinute, microSieverts, unitId);
 		return this.mapper.writeValueAsString(sensorData);
+	}
+
+	private void writeToFile() {
+		if (outputStream == null) {
+			try {
+				backupFile.createNewFile();
+				this.outputStream = new FileOutputStream(backupFile, true);
+			}
+			catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }
