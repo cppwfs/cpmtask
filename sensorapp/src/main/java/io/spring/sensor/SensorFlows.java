@@ -47,11 +47,7 @@ public class SensorFlows {
 	private boolean isCloudAvailable;
 
 	public SensorFlows(SensorProperties sensorProperties) {
-//		this.webClient = WebClient
-//				.builder()
-//				.baseUrl(sensorProperties.getUrl())
-//				.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-//				.build();
+
 		restTemplate = new RestTemplate();
 		this.backupFile = new File(sensorProperties.getBackUpFileName());
 		try {

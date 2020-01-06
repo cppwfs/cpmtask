@@ -12,8 +12,6 @@ public class SensorApplication {
 	@Autowired
 	private SensorFlows sensorFlows;
 
-
-
 	public static void main(String[] args) {
 		SpringApplication.run(SensorApplication.class, args);
 	}
