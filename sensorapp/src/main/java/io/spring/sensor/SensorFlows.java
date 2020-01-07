@@ -19,18 +19,28 @@ package io.spring.sensor;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Random;
+import java.util.UUID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fazecast.jSerialComm.SerialPort;
+import com.pi4j.io.gpio.GpioController;
+import com.pi4j.io.gpio.GpioFactory;
+import com.pi4j.io.gpio.GpioPinDigitalInput;
+import com.pi4j.io.gpio.Pin;
+import com.pi4j.io.gpio.PinPullResistance;
+import com.pi4j.io.gpio.PinState;
+import com.pi4j.io.gpio.RaspiPin;
+import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
+import com.pi4j.io.gpio.event.GpioPinListenerDigital;
 import io.spring.sensor.configuration.SensorProperties;
 import io.spring.sensor.data.SensorData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 
@@ -44,19 +54,17 @@ public class SensorFlows {
 	private String unitId;
 	private SensorProperties sensorProperties;
 	private ObjectMapper mapper;
-	private boolean isCloudAvailable;
+
+	public int cpm;
 
 	public SensorFlows(SensorProperties sensorProperties) {
 
-		restTemplate = new RestTemplate();
-		this.backupFile = new File(sensorProperties.getBackUpFileName());
-		try {
-			backupFile.createNewFile();
-			this.outputStream = new FileOutputStream(backupFile, true);
-		}
-		catch (IOException e) {
-			e.printStackTrace();
-		}
+
+		SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+
+		factory.setConnectTimeout(3000);
+		factory.setReadTimeout(3000);
+		restTemplate = new RestTemplate(factory);
 		unitId = sensorProperties.getUnitId();
 		this.sensorProperties = sensorProperties;
 		this.mapper = new ObjectMapper();
@@ -80,30 +88,59 @@ public class SensorFlows {
 		}
 	}
 
-	public void processCPM() {
+	public void processCPM() throws Exception{
+		System.out.println("<--Pi4J--> GPIO Listen Example ... started.");
 
-		SerialPort comPort = SerialPort.getCommPorts()[this.sensorProperties.getComPort()];
-		comPort.openPort();
-		comPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0);
-		InputStream in = comPort.getInputStream();
-		try
-		{
-			//System.out.print("CPM:");
-			String data = "";
-			for (int j = 0; j < 100000; ++j) {
-				char c = (char) in.read();
-				if (c != '\r' && c!= '\n') {
-					data += c;
+		// create gpio controller
+		final GpioController gpio = GpioFactory.getInstance();
+
+		addListener(gpio, RaspiPin.GPIO_02);
+
+		System.out.println(" ... complete the GPIO #02 circuit and see the listener feedback here in the console.");
+
+		Date date = new Date();
+		// keep program running until user aborts (CTRL-C)
+		while (true) {
+			Date currentDate = new Date();
+			long diff = currentDate.getTime() - date.getTime();
+			long diffSeconds = diff / 1000 % 60;
+			if( diffSeconds == 0 ) {
+				try {
+					postData(String.valueOf(this.cpm));
+					this.cpm = 0;
+					date = currentDate;
 				}
-//				System.out.print(c);
-				if(c == '\n') {
-					postData(data);
-					data = "";
+				catch(IOException ioException) {
+					ioException.printStackTrace();
 				}
 			}
-			in.close();
-		} catch (Exception e) { e.printStackTrace(); }
-		comPort.closePort();
+			Thread.sleep(1000);
+		}
+
+		// stop all GPIO activity/threads by shutting down the GPIO controller
+		// (this method will forcefully shutdown all GPIO monitoring threads and scheduled tasks)
+		// gpio.shutdown();   <--- implement this method call if you wish to terminate the Pi4J GPIO controller
+	}
+
+
+	private void addListener(GpioController gpio, Pin pin) {
+		final GpioPinDigitalInput myButton = gpio.provisionDigitalInputPin(pin, PinPullResistance.OFF);
+
+		// set shutdown state for this input pin
+		myButton.setShutdownOptions(true);
+
+		// create and register gpio pin listener
+		myButton.addListener(new GpioPinListenerDigital() {
+			@Override
+			public void handleGpioPinDigitalStateChangeEvent(GpioPinDigitalStateChangeEvent event) {
+				// display pin state on console
+				if(event.getState().equals(PinState.LOW)) {
+					System.out.println(" --> GPIO PIN STATE CHANGE: " + event.getPin() + " = " + event.getState());
+					cpm++;
+				}
+			}
+
+		});
 	}
 
 
@@ -119,11 +156,10 @@ public class SensorFlows {
 		try {
 			this.restTemplate.postForEntity(sensorProperties.getUrl(),sensorData, SensorData.class);
 			logger.info(">>>>>" + cpm);
-			isCloudAvailable = true;
+			resetWriter();
 		}
 		catch (Exception e) {
-			this.outputStream.write(("=====>" + sensorData + "\n").getBytes() );
-			logger.info("====>" + sensorData);
+			writeToFile(sensorData);
 		}
 	}
 
@@ -135,9 +171,24 @@ public class SensorFlows {
 		return this.mapper.writeValueAsString(sensorData);
 	}
 
-	private void writeToFile() {
+	private void resetWriter() {
+		if (outputStream != null) {
+			try {
+				outputStream.close();
+				File file = new File(this.backupFile.getName());
+				file.renameTo(new File(sensorProperties.getBackUpFileName() + UUID.randomUUID()));
+				outputStream = null;
+			}
+			catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private void writeToFile(String sensorData) throws IOException {
 		if (outputStream == null) {
 			try {
+				this.backupFile = new File(sensorProperties.getBackUpFileName() + "-current");
 				backupFile.createNewFile();
 				this.outputStream = new FileOutputStream(backupFile, true);
 			}
@@ -145,5 +196,7 @@ public class SensorFlows {
 				e.printStackTrace();
 			}
 		}
+		this.outputStream.write(("=====>" + sensorData + "\n").getBytes());
+		logger.info("====>" + sensorData);
 	}
 }
