@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.spring.sensor.data;
+package io.spring.bananaalert;
 
 import java.util.Date;
 
@@ -25,20 +25,16 @@ public class SensorData {
 	private String unitId;
 	private String timestamp;
 
-	public SensorData(String countsPerMinute, String microSieverts, String bananas, String unitId, String timestamp) {
-		this.countsPerMinute = countsPerMinute;
-		this.microSieverts = microSieverts;
-		this.bananas = bananas;
-		this.unitId = unitId;
-		this.timestamp = timestamp;
+	public SensorData() {
 	}
 
 	public SensorData(String countsPerMinute, String microSieverts, String unitId) {
 		this.countsPerMinute = countsPerMinute;
 		this.microSieverts = microSieverts;
 		this.unitId = unitId;
-		this.bananas = String.valueOf(Double.valueOf(microSieverts) /.1);
-		this.timestamp = (new Date()).toString();
+		Double bananas =  Double.valueOf(microSieverts) /.1;
+		this.bananas = String.valueOf(bananas);
+		this.timestamp = String.valueOf(new Date());
 	}
 
 	public String getCountsPerMinute() {

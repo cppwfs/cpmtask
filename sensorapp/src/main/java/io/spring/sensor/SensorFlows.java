@@ -154,7 +154,7 @@ public class SensorFlows {
 			return;
 		}
 		try {
-			this.restTemplate.postForEntity(sensorProperties.getUrl(),sensorData, SensorData.class);
+			this.restTemplate.postForEntity(sensorProperties.getUrl(),sensorData.toString(), null);
 			logger.info(">>>>>" + cpm);
 			resetWriter();
 		}
@@ -164,10 +164,9 @@ public class SensorFlows {
 	}
 
 	private String calculateSensorData(String cpm) throws Exception{
-		SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd hh:mm:ss");
 		int countsPerMinute = Integer.valueOf(cpm);
 		Double microSieverts = countsPerMinute / this.sensorProperties.getCpmSievertConverstion();
-		SensorData sensorData = new SensorData(countsPerMinute, microSieverts, unitId);
+		SensorData sensorData = new SensorData(cpm, String.valueOf(microSieverts), unitId);
 		return this.mapper.writeValueAsString(sensorData);
 	}
 
