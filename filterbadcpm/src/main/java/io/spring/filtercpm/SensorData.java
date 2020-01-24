@@ -14,54 +14,50 @@
  *  limitations under the License.
  */
 
-package io.spring.transformcpm;
+package io.spring.filtercpm;
 
 import java.util.Date;
 
 public class SensorData {
-	private Integer countsPerMinute;
-	private Double microSieverts;
-		private Double bananas;
+	private String countsPerMinute;
+	private String microSieverts;
+	private String bananas;
 	private String unitId;
-	private Date timestamp;
+	private String timestamp;
 
-	public SensorData(Integer countsPerMinute, Double microSieverts, Double bananas, String unitId, Date timestamp) {
-		this.countsPerMinute = countsPerMinute;
-		this.microSieverts = microSieverts;
-		this.bananas = bananas;
-		this.unitId = unitId;
-		this.timestamp = timestamp;
+	public SensorData() {
 	}
 
-	public SensorData(Integer countsPerMinute, Double microSieverts, String unitId) {
+	public SensorData(String countsPerMinute, String microSieverts, String unitId) {
 		this.countsPerMinute = countsPerMinute;
 		this.microSieverts = microSieverts;
 		this.unitId = unitId;
-		this.bananas = microSieverts /.1;
-		this.timestamp = new Date();
+		Double bananas =  Double.valueOf(microSieverts) /.1;
+		this.bananas = String.valueOf(bananas);
+		this.timestamp = String.valueOf(new Date());
 	}
 
-	public Integer getCountsPerMinute() {
+	public String getCountsPerMinute() {
 		return countsPerMinute;
 	}
 
-	public void setCountsPerMinute(Integer countsPerMinute) {
+	public void setCountsPerMinute(String countsPerMinute) {
 		this.countsPerMinute = countsPerMinute;
 	}
 
-	public Double getMicroSieverts() {
+	public String getMicroSieverts() {
 		return microSieverts;
 	}
 
-	public void setMicroSieverts(Double microSieverts) {
+	public void setMicroSieverts(String microSieverts) {
 		this.microSieverts = microSieverts;
 	}
 
-	public Double getBananas() {
+	public String getBananas() {
 		return bananas;
 	}
 
-	public void setBananas(Double bananas) {
+	public void setBananas(String bananas) {
 		this.bananas = bananas;
 	}
 
@@ -73,14 +69,13 @@ public class SensorData {
 		this.unitId = unitId;
 	}
 
-	public Date getTimestamp() {
+	public String getTimestamp() {
 		return timestamp;
 	}
 
-	public void setTimestamp(Date timestamp) {
+	public void setTimestamp(String timestamp) {
 		this.timestamp = timestamp;
 	}
-
 
 	@Override
 	public String toString() {
