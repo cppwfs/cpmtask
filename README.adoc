@@ -1,47 +1,50 @@
 = Geiger Counter Spring App From the Edge
 
-== Sensor Application
-=== Build the application
-```
-cd sensorapp
-mvn clean install -DskipTests
-```
+== Stream Applications
+=== Banana Alert Application
 
-=== Run the Sensor application with sample data
-```
-cd sensorapp
-java -jar target/sensorapp-0.0.1-SNAPSHOT.jar --generateSampleData=true --url=http://<your http source>
-```
-
-=== Run the Sensor application with real data to cloud
-```
-cd sensorapp
-java -jar target/sensorapp-0.0.1-SNAPSHOT.jar --url=<your http source>
-```
-
-== Banana Alert Application
-=== Build the application
+==== Build the application
 ```
 cd BananaAlert
 mvn clean install -DskipTests
 ```
+==== Docker Build
+```
+mvn dockerfile:build
+```
 
-== Filter Bad CPM data App
-=== Build the application
+NOTE: If you are using minikube be sure to execute this command prior to the docker build, `eval $(minikube docker-env)`.
+
+
+=== Filter Bad CPM data App
+==== Build the application
 ```
 cd filterbadcpm
 mvn clean install -DskipTests
 ```
+==== Docker Build
+```
+mvn dockerfile:build
+```
 
-== Transform CPM data to SensorData Application
-=== Build the application
+NOTE: If you are using minikube be sure to execute this command prior to the docker build, `eval $(minikube docker-env)`.
+
+=== Transform CPM data to SensorData Application
+==== Build the application
 ```
 cd transformcpm
 mvn clean install -DskipTests
 ```
+==== Docker Build
+```
+mvn dockerfile:build
+```
 
-== Deploy Presentation to Data Flow
-=== Setup DB
+NOTE: If you are using minikube be sure to execute this command prior to the docker build, `eval $(minikube docker-env)`.
+
+
+=== Deploy Presentation to Data Flow
+==== Setup DB
 From a Database client execute the following DDL to create the table for storing banana info
 ```
 drop table bananas;
@@ -54,14 +57,44 @@ CREATE TABLE bananas
 	timestamp varchar(255)
 );
 ```
-=== Register the apps and create the streams
+
+=== Register the apps
+==== If running the streams locally
 From the Spring Cloud Data Flow Shell
 ```
 app register --name filteroutbadcpm --type processor --uri maven://io.spring:filterbadcpm:1.0.0.BUILD-SNAPSHOT
 app register --name transformcpm --type processor --uri maven://io.spring:transformcpm:1.0.0.BUILD-SNAPSHOT
 app register --name alertsink --type sink --uri maven://io.spring:bananaalert:1.0.0.BUILD-SNAPSHOT
+```
+==== If running the streams from kubernetes or a docker instance
+```
+app register --name filteroutbadcpm --type processor --uri docker:cppwfs/filterbadcpm:1.0.0.BUILD-SNAPSHOT
+app register --name transformcpm --type processor --uri docker:cppwfs/transformcpm:1.0.0.BUILD-SNAPSHOT
+app register --name alertsink --type sink --uri docker:cppwfs/bananaalert:1.0.0.BUILD-SNAPSHOT
+```
+=== Create the streams
+```
 stream create --name edgeinput --definition "http --server.port=9000 > :storestream"
 stream create --name iotinput --definition "http --server.port=9001 | transformcpm > :storestream"
 stream create --name storedata --definition ":storestream > filteroutbadcpm | jdbc --tableName=bananas --columns=countsPerMinute,microSieverts,bananas,unitId,timestamp --spring.datasource.driver-class-name=org.mariadb.jdbc.Driver --spring.datasource.url='jdbc:mysql://<URL>/<DB>' --spring.datasource.username=<user> --spring.datasource.password=<password>"
 stream create --name alertstream --definition ":storedata.filteroutbadcpm > alertsink"
+```
+
+== Sensor Application
+=== Build the application
+```
+cd sensorapp
+mvn clean install -DskipTests
+```
+
+=== Run the Sensor application to generate sample data
+```
+cd sensorapp
+java -jar target/sensorapp-0.0.1-SNAPSHOT.jar --generateSampleData=true --url=http://<your http source>
+```
+
+=== Run the Sensor application with real data to cloud
+```
+cd sensorapp
+java -jar target/sensorapp-0.0.1-SNAPSHOT.jar --url=<your http source>
 ```

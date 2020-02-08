@@ -84,7 +84,7 @@ public class SensorFlows {
 		for (int x = 0; x < 100000; x++) {
 			int cpm =  r.nextInt((30 - 15) + 1) + 15;
 			postData(Integer.valueOf(cpm).toString());
-			Thread.sleep(1000);
+			Thread.sleep(60000);
 		}
 	}
 
