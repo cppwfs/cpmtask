@@ -1,9 +1,10 @@
 = Geiger Counter Spring App From the Edge
 
 1. Build each stream application in the `Stream Application` section.
-2. Create the table required for the demo by executing the scripts in the `Setup DB` section.
-3. Build and launch the sensor application as show below.
-4. Use your Database client to see the data appear in the bananas table.
+1. Build Task Application
+1. Create the table required for the demo by executing the scripts in the `Setup DB` section.
+1. Build and launch the sensor application as show below.
+1. Use your Database client to see the data appear in the bananas table.
 
 
 == Stream Applications
@@ -64,6 +65,22 @@ CREATE TABLE bananas
 );
 ```
 
+== Task Applications
+=== Log Banana Average Application
+
+==== Build the application
+```
+cd logbananaaverage
+mvn clean install -DskipTests
+```
+==== Docker Build
+```
+mvn dockerfile:build
+```
+
+NOTE: If you are using minikube be sure to execute this command prior to the docker build, `eval $(minikube docker-env)`.
+
+
 === Register the apps
 ==== If running the streams locally
 From the Spring Cloud Data Flow Shell
@@ -71,12 +88,14 @@ From the Spring Cloud Data Flow Shell
 app register --name filteroutbadcpm --type processor --uri maven://io.spring:filterbadcpm:1.0.0.BUILD-SNAPSHOT
 app register --name transformcpm --type processor --uri maven://io.spring:transformcpm:1.0.0.BUILD-SNAPSHOT
 app register --name alertsink --type sink --uri maven://io.spring:bananaalert:1.0.0.BUILD-SNAPSHOT
+app register --name logbananaaverage --type task --uri maven://io.spring:logbananaaverage:1.0.0.BUILD-SNAPSHOT
 ```
 ==== If running the streams from kubernetes or a docker instance
 ```
 app register --name filteroutbadcpm --type processor --uri docker:cppwfs/filterbadcpm:1.0.0.BUILD-SNAPSHOT
 app register --name transformcpm --type processor --uri docker:cppwfs/transformcpm:1.0.0.BUILD-SNAPSHOT
 app register --name alertsink --type sink --uri docker:cppwfs/bananaalert:1.0.0.BUILD-SNAPSHOT
+app register --name logbananaaverage --type task --uri docker:cppwfs/logbananaaverage:1.0.0.BUILD-SNAPSHOT
 ```
 === Create the streams
 ```
