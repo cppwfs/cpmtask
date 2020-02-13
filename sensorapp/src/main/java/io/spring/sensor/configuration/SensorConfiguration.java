@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
 public class SensorConfiguration {
 
 	@Bean
-	public SensorFlows sensorFlows(SensorProperties sensorProperties) {
+	public SensorFlows sensorFlows(SensorProperties sensorProperties) throws Exception{
 		return new SensorFlows(sensorProperties);
 	}
 }

@@ -20,7 +20,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.SimpleDateFormat;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.Random;
 import java.util.UUID;
@@ -37,9 +41,16 @@ import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
 import com.pi4j.io.gpio.event.GpioPinListenerDigital;
 import io.spring.sensor.configuration.SensorProperties;
 import io.spring.sensor.data.SensorData;
+import javax.net.ssl.SSLContext;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustStrategy;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
@@ -57,14 +68,18 @@ public class SensorFlows {
 
 	public int cpm;
 
-	public SensorFlows(SensorProperties sensorProperties) {
+	public SensorFlows(SensorProperties sensorProperties) throws Exception {
+
+		if(sensorProperties.getUrl().startsWith("https:")) {
+			this.restTemplate = getSSLRestTemplate();
+		} else {
+			SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+			factory.setConnectTimeout(3000);
+			factory.setReadTimeout(3000);
+			restTemplate = new RestTemplate(factory);
+		}
 
 
-		SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-
-		factory.setConnectTimeout(3000);
-		factory.setReadTimeout(3000);
-		restTemplate = new RestTemplate(factory);
 		unitId = sensorProperties.getUnitId();
 		this.sensorProperties = sensorProperties;
 		this.mapper = new ObjectMapper();
@@ -159,6 +174,7 @@ public class SensorFlows {
 			resetWriter();
 		}
 		catch (Exception e) {
+			e.printStackTrace();
 			writeToFile(sensorData);
 		}
 	}
@@ -197,5 +213,21 @@ public class SensorFlows {
 		}
 		this.outputStream.write(("=====>" + sensorData + "\n").getBytes());
 		logger.info("====>" + sensorData);
+	}
+
+	public RestTemplate getSSLRestTemplate() throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
+		TrustStrategy acceptingTrustStrategy = new TrustStrategy() {
+			@Override
+			public boolean isTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+				return true;
+			}
+		};
+		SSLContext sslContext = org.apache.http.ssl.SSLContexts.custom().loadTrustMaterial(null, acceptingTrustStrategy).build();
+		SSLConnectionSocketFactory csf = new SSLConnectionSocketFactory(sslContext, new NoopHostnameVerifier());
+		CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(csf).build();
+		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
+		requestFactory.setHttpClient(httpClient);
+		RestTemplate restTemplate = new RestTemplate(requestFactory);
+		return restTemplate;
 	}
 }
